@@ -1,0 +1,56 @@
+{
+  "name": "dsh-plugin-chatgpt-crash-fix",
+  "version": "1.0.0",
+  "description": "Diagnose and fix ChatGPT/Codex desktop app startup crashes on Windows: Store-updater native crash, broken Microsoft Store channel, and Clash/system-proxy interference. Ships a Cordis command, an agent Skill (SKILL.md), and runnable PowerShell diagnostic/fix scripts.",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lammarco86/dsh-plugin-chatgpt-crash-fix.git"
+  },
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "skills",
+    "scripts",
+    "cordis.patch.yml",
+    "README.md",
+    "README.zh.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "4.0.1"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "keywords": [
+    "deepseek",
+    "dsh",
+    "plugin",
+    "chatgpt",
+    "codex",
+    "crash",
+    "windows",
+    "microsoft-store",
+    "proxy",
+    "diagnostics"
+  ]
+}

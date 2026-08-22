@@ -1,0 +1,6 @@
+# dsh-plugin-chatgpt-crash-fix bundle patch: inserts this package's loader
+# entry so the command is registered when the plugin is installed into a
+# profile (e.g. via `dsh plugin add dsh-plugin-chatgpt-crash-fix`).
+- insert:
+    - id: chatgpt-crash-fix
+      name: dsh-plugin-chatgpt-crash-fix
