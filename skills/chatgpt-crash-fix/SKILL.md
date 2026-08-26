@@ -70,6 +70,10 @@ Set-ItemProperty $k -Name ProxyOverride -Value $bypass
 # 重测 WU 扫描 ⇒ 应 OK
 ```
 
+> **⚠️ 该绕过列表会被重置，这是闪退"复发"的头号原因。** Windows 重启、或 Clash 类软件重新设置系统代理时，常把 `ProxyOverride` 重置回默认值（只剩 localhost/内网段），使微软域名重新被代理接管，应用更新器再次崩溃。因此**每次排查/验证前都要先确认 `ProxyOverride` 仍包含微软域名**；已修复过但后续又闪退的，优先怀疑这一项。
+
+持久化建议（避免重启/Clash 重置后复发）：把上述微软域名填进 **Clash 类软件的"系统代理绕过(Bypass)"** 配置（而非只改注册表），让代理客户端每次设代理都自动带上；否则重启后需重新执行本修复。
+
 配套（视情况）：
 - `Start-Service wuauserv, DoSvc`（Windows Update 服务被中断的更新停掉时）。
 - `wsreset.exe` 重置商店缓存。
@@ -87,10 +91,11 @@ Get-AppxPackage -Name OpenAI.Codex | Select-Object Version, Status
 ## 7. 验证
 
 1. 正常方式启动应用（开始菜单/快捷方式，勿用"直接跑 exe"——会绕过 MSIX 虚拟化）。
-2. 观察 ≥120 秒（超过原崩溃窗口），确认进程存活：
+2. **先确认代理绕过仍在**（防复发）：`(Get-ItemProperty "HKCU:\...\Internet Settings").ProxyOverride` 应含 `microsoft`/`windowsupdate`；缺少则先重新执行第 5 步修复。
+3. 观察 ≥120 秒（超过原崩溃窗口），确认进程存活：
    `Get-Process | Where-Object { $_.ProcessName -match "ChatGPT|Codex" }`
-3. 确认日志出现 `windows-store-updater ... overallState=NoUpdates`（检查**完成**而非崩溃）。
-4. 确认无新 `.dmp` 生成。
+4. 确认日志出现 `windows-store-updater ... overallState=NoUpdates`（检查**完成**而非崩溃）。
+5. 确认无新 `.dmp` 生成。
 
 ## 8. 安全与合规
 
@@ -103,6 +108,7 @@ Get-AppxPackage -Name OpenAI.Codex | Select-Object Version, Status
 
 | 现象 | 原因 |
 | --- | --- |
+| 修复后又闪退（尤其重启/Clash 重设后） | 代理绕过列表被重置回默认值，微软域名重新被代理接管 → 更新器崩溃；重新执行第 5 步或在 Clash 的 Bypass 配置里持久化 |
 | 直接运行 `ChatGPT.exe` 测试 | 绕过 MSIX 虚拟化，数据写到真实 `%APPDATA%\Codex`，与正常启动不一致 |
 | 本地 `requirements.toml` 写 `in_app_updates=false` | 个人版不生效，该开关仅对 MDM 托管配置生效 |
 | `dsh plugin add` 的恢复边界 | 只快照 profile 的 package.json/lock/workspace 三个文件 |
