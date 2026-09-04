@@ -40,7 +40,7 @@ try {
   $s = New-Object -ComObject Microsoft.Update.Session
   $r = $s.CreateUpdateSearcher().Search("IsInstalled=0")
   "WU scan OK: $($r.Updates.Count) updates"
-} catch { "WU scan FAILED: $($_.Exception.Message)" }   # 0x80072EFD = 连接失败
+} catch { "WU scan FAILED: $($_.Exception.Message)" }   # 0x80072EFD=网络/代理连接失败；0x80240438=WU 组件/服务状态错误(见第 5.2 步)
 
 # 3) 端点直连（区分"被墙"vs"服务损坏"）：
 curl.exe -s -o NUL -w "%{http_code}" https://fe3.delivery.mp.microsoft.com/ClientWebService/client.asmx  # 400 = 可达
@@ -79,6 +79,24 @@ Set-ItemProperty $k -Name ProxyOverride -Value $bypass
 - `wsreset.exe` 重置商店缓存。
 - `dism /Online /Cleanup-Image /RestoreHealth` + `sfc /scannow`（排除系统组件损坏，通常不是根因但值得做一次）。
 
+### 5.2 修复：Windows Update 组件状态坏（`0x80240438`）
+
+重启后若 WU 扫描报 **`0x80240438`**（组件/服务错误，非网络错误）——与应用窗口正常但闪退对应，这是**重启后 WU 引擎/缓存状态坏**，与代理无关。执行组件重置：
+
+```powershell
+foreach ($s in @("wuauserv","bits","DoSvc","cryptsvc")) { Stop-Service $s -Force }
+Start-Sleep 2
+# 若存在旧的 .old 先删掉，再重命名
+Remove-Item "C:\Windows\SoftwareDistribution.old" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item "C:\Windows\System32\catroot2.old" -Recurse -Force -ErrorAction SilentlyContinue
+Rename-Item "C:\Windows\SoftwareDistribution" "SoftwareDistribution.old" -Force
+Rename-Item "C:\Windows\System32\catroot2" "catroot2.old" -Force
+foreach ($s in @("wuauserv","bits","DoSvc","cryptsvc")) { Start-Service $s }
+# 重测 WU 扫描 ⇒ 0x80240438 应消失（若转为 0x80072EFD 则再看代理/绕过）
+```
+
+> **区分两种失败码**：`0x80072EFD`＝网络/代理连接失败（走代理绕过修复）；`0x80240438`＝WU 组件/服务状态错误（走上面的组件重置）。两者都会导致应用更新器崩溃闪退，但修法不同。
+
 ## 6. 更新应用到最新版（商店通道恢复后）
 
 ```powershell
@@ -109,6 +127,7 @@ Get-AppxPackage -Name OpenAI.Codex | Select-Object Version, Status
 | 现象 | 原因 |
 | --- | --- |
 | 修复后又闪退（尤其重启/Clash 重设后） | 代理绕过列表被重置回默认值，微软域名重新被代理接管 → 更新器崩溃；重新执行第 5 步或在 Clash 的 Bypass 配置里持久化 |
+| 重启后闪退，WU 报 `0x80240438` | 重启后 Windows Update 组件/缓存状态坏（与代理无关）；执行第 5.2 步组件重置 |
 | 直接运行 `ChatGPT.exe` 测试 | 绕过 MSIX 虚拟化，数据写到真实 `%APPDATA%\Codex`，与正常启动不一致 |
 | 本地 `requirements.toml` 写 `in_app_updates=false` | 个人版不生效，该开关仅对 MDM 托管配置生效 |
 | `dsh plugin add` 的恢复边界 | 只快照 profile 的 package.json/lock/workspace 三个文件 |

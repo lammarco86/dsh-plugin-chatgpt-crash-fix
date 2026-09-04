@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-chatgpt-crash-fix",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Diagnose and fix ChatGPT/Codex desktop app startup crashes on Windows: Store-updater native crash, broken Microsoft Store channel, and Clash/system-proxy interference. Ships a Cordis command, an agent Skill (SKILL.md), and runnable PowerShell diagnostic/fix scripts.",
   "license": "MIT",
   "publishConfig": {
